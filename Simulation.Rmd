@@ -256,6 +256,3 @@ print(random_effects_summary_biv)
 
 
 
-
-launch_shinystan(summarized_cs)  
-launch_shinystan(summarized_biv) 
