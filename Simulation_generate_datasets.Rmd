@@ -55,11 +55,23 @@ m_cs_compiled <- brm(
   saveRDS(m_cs_compiled, "compiled_m_cs.rds")
 }
 
-if (!file.exists("compiled_m_biv.rds")) {
+if (!file.exists("compiled_m_biv_dh.rds")) {
 # Fit the bivariate model with minimal iterations if the file doesn't exist
-  m_biv_compiled <- brm(
+  m_biv_dh_compiled <- brm(
     bf(y ~ 1 + (1 | a | id), sigma ~ 1 + (1 | a | id)) +
       bf(h ~ 1 + (1 | a | id), sigma ~ 1 + (1 | a | id)) +
+      set_rescor(TRUE),
+    data = data.frame(id = 1, y = 1, h = 1), # Dummy data for initial compile
+    chains = 1, iter = 10, cores = 1
+  )
+  saveRDS(m_biv_dh_compiled, "compiled_m_biv_dh.rds")
+}
+
+
+if (!file.exists("compiled_m_biv.rds")) {
+  m_biv_compiled <- brm(
+    bf(y ~ 1 + (1 | id)) +
+      bf(h ~ 1 + (1 | id)) +
       set_rescor(TRUE),
     data = data.frame(id = 1, y = 1, h = 1), # Dummy data for initial compile
     chains = 1, iter = 10, cores = 1
@@ -67,13 +79,23 @@ if (!file.exists("compiled_m_biv.rds")) {
   saveRDS(m_biv_compiled, "compiled_m_biv.rds")
 }
 
-```
 
+if (!file.exists("compiled_m_univar.rds")) {
+  # Fit the univariate model with minimal iterations
+  m_univar_compiled <- brm(
+    bf(y ~ h + (1 + h | id)),           # Univariate model formula
+    data = data.frame(id = 1, y = 1, h = 1),  # Dummy data for initial compile
+    chains = 1, iter = 10, cores = 1
+  )
+  saveRDS(m_univar_compiled, "compiled_m_univar.rds")
+}
+
+```
 
 ```{r}
 set.seed(1)
 
-# Function to simulate a single dataset
+# Function to simulate a single data set
 simulate_dataset <- function(n_ind, n_obs,
                              y_bm0, y_bmh, y_bv0,
                              h_bm0, h_bv0,
@@ -118,17 +140,23 @@ datasets <- lapply(1:num_runs, function(i) {
 
 # Read in the compiled models
 m_cs_compiled <- readRDS("compiled_m_cs.rds")
+m_biv_dh_compiled <- readRDS("compiled_m_biv_dh.rds")
 m_biv_compiled <- readRDS("compiled_m_biv.rds")
+m_univar_compiled <- readRDS("compiled_m_univar.rds")
 
 # Update run_models function with full iterations
 run_models_data_first <- function(dat, i) {
   # Fit models using precompiled code
-  m_cs <- update(m_cs_compiled, newdata = dat, chains = 2, cores = 2, iter = 2000, warmup = 1000)
-  m_biv <- update(m_biv_compiled, newdata = dat, chains = 2, cores = 2, iter = 2000, warmup = 1000)
-
-  # Save models to RDS files
+  m_cs <- update(m_cs_compiled, newdata = dat, chains = 1, cores = 1, iter = 700, warmup = 500)
+  m_biv_dh <- update(m_biv_dh_compiled, newdata = dat, chains = 1, cores = 1, iter = 700, warmup = 500)
+  m_biv <- update(m_biv_compiled, newdata = dat, chains = 1, cores = 1, iter = 700, warmup = 500)
+  m_univar <- update(m_univar_compiled, newdata = dat, chains = 1, cores = 1, iter = 700, warmup = 500)
+ 
+   # Save models to RDS files
   saveRDS(m_cs, file = paste0("model_cs_run_", i, ".rds"))
+  saveRDS(m_biv_dh, file = paste0("model_biv_dh_run_", i, ".rds"))
   saveRDS(m_biv, file = paste0("model_biv_run_", i, ".rds"))
+  saveRDS(m_univar, file = paste0("model_univar_run_", i, ".rds"))
   
   # No return of the model objects themselves, just save them to files
 }
@@ -142,7 +170,9 @@ results <- map2(datasets, 1:num_runs, function(dat, i) {
   # Return the file names for this run
   list(
     causal = paste0("model_cs_run_", i, ".rds"),
-    bivariate = paste0("model_biv_run_", i, ".rds")
+    bivariate_dh = paste0("model_biv_dh_run_", i, ".rds"),
+    bivariate = paste0("model_biv_run_", i, ".rds"),
+    univariate = paste0("model_univar_run_", i, ".rds")
   )
 })
 
@@ -166,16 +196,16 @@ m_cs_compiled <- brm(
   saveRDS(m_cs_compiled, "compiled_m_cs.rds")
 }
 
-if (!file.exists("compiled_m_biv.rds")) {
+if (!file.exists("compiled_m_biv_dh.rds")) {
 # Fit the bivariate model with minimal iterations if the file doesn't exist
-  m_biv_compiled <- brm(
+  m_biv_dh_compiled <- brm(
     bf(y ~ 1 + (1 | a | id), sigma ~ 1 + (1 | a | id)) +
       bf(h ~ 1 + (1 | a | id), sigma ~ 1 + (1 | a | id)) +
       set_rescor(TRUE),
     data = data.frame(id = 1, y = 1, h = 1), # Dummy data for initial compile
     chains = 1, iter = 10, cores = 1
   )
-  saveRDS(m_biv_compiled, "compiled_m_biv.rds")
+  saveRDS(m_biv_dh_compiled, "compiled_m_biv_dh.rds")
 }
 
 
@@ -213,17 +243,17 @@ run_models <- function(i, n_ind, n_obs) {
 
 # Load the precompiled models
   m_cs_compiled <- readRDS("compiled_m_cs.rds")
-  m_biv_compiled <- readRDS("compiled_m_biv.rds")
+  m_biv_dh_compiled <- readRDS("compiled_m_biv_dh.rds")
 
 #Update models with full iterations
 m_cs <- update(m_cs_compiled, newdata = dat, chains = 1, cores = 1, iter = 1000, warmup = 500)
-m_biv <- update(m_biv_compiled, newdata = dat, chains = 1, cores = 1, iter = 1000, warmup = 500)
+m_biv_dh <- update(m_biv_dh_compiled, newdata = dat, chains = 1, cores = 1, iter = 1000, warmup = 500)
 
 
   saveRDS(m_cs, file = paste0("model_cs_run_", i, ".rds"))
-  saveRDS(m_biv, file = paste0("model_biv_run_", i, ".rds"))
+  saveRDS(m_biv_dh, file = paste0("model_biv_run_", i, ".rds"))
 
-  list(m_cs = m_cs, m_biv = m_biv)
+  list(m_cs = m_cs, m_biv_dh = m_biv_dh)
 }
 
 # Run each model 5 times, saving each run's models
@@ -241,90 +271,13 @@ results <- map(1:2, ~ {
 ```{r}
 # Extract all causal and bivariate model files from the results
 causal_model_files <- map_chr(results, "causal")
+bivariate_dh_model_files <- map_chr(results, "bivariate_dh")
 bivariate_model_files <- map_chr(results, "bivariate")
-
+univar_model_files <- map_chr(results, "univariate")
 ```
 
 ```{r}
-summarize_causal_models <- function(file_list) {
-  # Initialize empty lists to hold fixed effects and random effects summaries
-  fixed_effects_list <- list()
-  random_effects_list <- list()
-  
-  # We'll track runs by their index in the file_list
-  for (i in seq_along(file_list)) {
-    file <- file_list[[i]]
-    # Read the model from the .rds file
-    model <- readRDS(file)
-    
-    # Extract fixed effects and add to the list
-    fixed_effects <- as.data.frame(summary(model)$fixed)
-    fixed_effects$parameter <- rownames(fixed_effects)
-    fixed_effects$run <- i  # Add run identifier
-    fixed_effects_list <- append(fixed_effects_list, list(fixed_effects))
-    
-    # Extract random effects (SD and correlations) and add to the list
-    random_effects <- as.data.frame(summary(model)$random$id)
-    random_effects$parameter <- rownames(random_effects)
-    random_effects$run <- i  # Add run identifier
-    random_effects_list <- append(random_effects_list, list(random_effects))
-  }
-  
-  # Combine all fixed effects and random effects across runs
-  all_fixed <- bind_rows(fixed_effects_list)
-  all_random <- bind_rows(random_effects_list)
-  
-  # Compute averaged summaries as before
-  fixed_effects_combined <- all_fixed %>%
-    group_by(parameter) %>%
-    summarise(across(Estimate:Tail_ESS, mean, na.rm = TRUE))
-  
-  random_effects_combined <- all_random %>%
-    group_by(parameter) %>%
-    summarise(across(Estimate:Tail_ESS, mean, na.rm = TRUE))
-  
-  # Create a wide table showing each run's parameter estimates (for fixed effects)
-  # This will have one row per run and one column per parameter (for the Estimate column)
-  fixed_effects_runs_wide <- all_fixed %>%
-    select(run, parameter, Estimate) %>%
-    pivot_wider(names_from = parameter, values_from = Estimate)
-  
-  # Similarly, for random effects:
-  random_effects_runs_wide <- all_random %>%
-    select(run, parameter, Estimate) %>%
-    pivot_wider(names_from = parameter, values_from = Estimate)
-  
-  # Return the averages and the run-by-run tables
-  list(
-    fixed_effects = fixed_effects_combined,
-    random_effects = random_effects_combined,
-    fixed_effects_by_run = fixed_effects_runs_wide,
-    random_effects_by_run = random_effects_runs_wide
-  )
-}
-```
-
-```{r}
-causal_summaries <- summarize_causal_models(causal_model_files)
-
-# Access the averaged summaries
-fixed_effects_summary <- causal_summaries$fixed_effects
-random_effects_summary <- causal_summaries$random_effects
-
-# Access the run-by-run tables
-fixed_effects_by_run <- causal_summaries$fixed_effects_by_run
-random_effects_by_run <- causal_summaries$random_effects_by_run
-
-# View the results
-print(fixed_effects_summary)
-print(random_effects_summary)
-print(fixed_effects_by_run)
-print(random_effects_by_run)
-```
-
-
-```{r}
-summarize_bivariate_models <- function(file_list) {
+summarize_models <- function(file_list) {
   # Initialize empty lists to hold fixed effects and random effects summaries
   fixed_effects_list <- list()
   random_effects_list <- list()
@@ -362,12 +315,11 @@ summarize_bivariate_models <- function(file_list) {
     group_by(parameter) %>%
     summarise(across(Estimate:Tail_ESS, mean, na.rm = TRUE))
   
-  # Create a wide table for fixed effects by run
+  # Create wide tables for fixed and random effects by run
   fixed_effects_runs_wide <- all_fixed %>%
     select(run, parameter, Estimate) %>%
     pivot_wider(names_from = parameter, values_from = Estimate)
   
-  # Create a wide table for random effects by run
   random_effects_runs_wide <- all_random %>%
     select(run, parameter, Estimate) %>%
     pivot_wider(names_from = parameter, values_from = Estimate)
@@ -381,11 +333,53 @@ summarize_bivariate_models <- function(file_list) {
   )
 }
 
+
+```
+
+```{r}
+causal_summaries <- summarize_models(causal_model_files)
+
+# Access the averaged summaries
+fixed_effects_summary <- causal_summaries$fixed_effects
+random_effects_summary <- causal_summaries$random_effects
+
+# Access the run-by-run tables
+fixed_effects_by_run <- causal_summaries$fixed_effects_by_run
+random_effects_by_run <- causal_summaries$random_effects_by_run
+
+# View the results
+print(fixed_effects_summary)
+print(random_effects_summary)
+print(fixed_effects_by_run)
+print(random_effects_by_run)
+```
+
+
+```{r}
+# Summarize the bivariate models
+bivariate_dh_summaries <- summarize_models(bivariate_dh_model_files)
+
+# Access the averaged summaries
+fixed_effects_summary_biv_dh <- bivariate_dh_summaries$fixed_effects
+random_effects_summary_biv_dh <- bivariate_dh_summaries$random_effects
+
+# Access the run-by-run tables
+fixed_effects_by_run_biv_dh <- bivariate_dh_summaries$fixed_effects_by_run
+random_effects_by_run_biv_dh <- bivariate_dh_summaries$random_effects_by_run
+
+# View the results
+print(fixed_effects_summary_biv_dh)
+print(random_effects_summary_biv_dh)
+print(fixed_effects_by_run_biv_dh)
+print(random_effects_by_run_biv_dh)
+
+
+
 ```
 
 ```{r}
 # Summarize the bivariate models
-bivariate_summaries <- summarize_bivariate_models(bivariate_model_files)
+bivariate_summaries <- summarize_models(bivariate_model_files)
 
 # Access the averaged summaries
 fixed_effects_summary_biv <- bivariate_summaries$fixed_effects
@@ -401,9 +395,53 @@ print(random_effects_summary_biv)
 print(fixed_effects_by_run_biv)
 print(random_effects_by_run_biv)
 
-
-
 ```
 
+```{r}
+# Summarize the univariate model
+univariate_summaries <- summarize_models(univar_model_files)
 
+# Access the averaged summaries
+fixed_effects_summary_univar <- univariate_summaries$fixed_effects
+random_effects_summary_univar <- univariate_summaries$random_effects
 
+# Access the run-by-run tables
+fixed_effects_by_run_univar <- univariate_summaries$fixed_effects_by_run
+random_effects_by_run_univar <- univariate_summaries$random_effects_by_run
+
+# View the results
+print(fixed_effects_summary_univar)
+print(random_effects_summary_univar)
+print(fixed_effects_by_run_univar)
+print(random_effects_by_run_univar)
+```
+
+```{r}
+#If rds files are saved, can use this to put them in a list
+generate_files_list <- function(num_runs) {
+  # Initialize a list of the appropriate length
+  files <- vector("list", num_runs)
+  
+  # Populate the list with file names
+  for (i in seq_len(num_runs)) {
+    files[[i]] <- paste0("model_univar_run_", i, ".rds")
+  }
+  
+  # Return the list
+  files
+}
+
+# Example usage:
+# If num_runs = 3, this returns a list:
+# [[1]] "model_cs_run_1.rds"
+# [[2]] "model_cs_run_2.rds"
+# [[3]] "model_cs_run_3.rds"
+
+#causal_model_files 
+#bivariate_dh_model_files 
+#bivariate_model_files 
+univariate_model_files <- generate_files_list(5)
+
+print(univariate_model_files)
+
+```
