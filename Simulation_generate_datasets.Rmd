@@ -19,8 +19,9 @@ library(brms)
 # sd(e) = exp(bv0 + uv0)
 
 ```{r}
+model_range <- 1:10 #Set this at the beginning of each session
 n_ind <- 100 #number of individuals
-n_obs <- 50 #number of obs per individual
+n_obs <- 10 #number of obs per individual
 n_tot <- n_ind * n_obs
 
 # Baseline (avg) within individual effects for individuals in trait y
@@ -130,13 +131,19 @@ simulate_dataset <- function(n_ind, n_obs,
 }
 
 # Generate a list of datasets for multiple runs
-num_runs <- 5
-datasets <- lapply(1:num_runs, function(i) {
+datasets <- lapply(model_range, function(i) {
   simulate_dataset(n_ind, n_obs,
                    y_bm0, y_bmh, y_bv0,
                    h_bm0, h_bv0,
                    y_vm, y_vs, y_vv, h_vm, h_vv)
 })
+
+for (i in seq_along(model_range)) {
+  run_number <- model_range[i]
+  dataset <- datasets[[i]]
+  
+  saveRDS(dataset, file = paste0("dataset_run_", run_number, ".rds"))
+}
 
 # Read in the compiled models
 m_cs_compiled <- readRDS("compiled_m_cs.rds")
@@ -144,13 +151,13 @@ m_biv_dh_compiled <- readRDS("compiled_m_biv_dh.rds")
 m_biv_compiled <- readRDS("compiled_m_biv.rds")
 m_univar_compiled <- readRDS("compiled_m_univar.rds")
 
-# Update run_models function with full iterations
+# Update run_models function with full iterations, make sure to check before running
 run_models_data_first <- function(dat, i) {
   # Fit models using precompiled code
-  m_cs <- update(m_cs_compiled, newdata = dat, chains = 1, cores = 1, iter = 700, warmup = 500)
-  m_biv_dh <- update(m_biv_dh_compiled, newdata = dat, chains = 1, cores = 1, iter = 700, warmup = 500)
-  m_biv <- update(m_biv_compiled, newdata = dat, chains = 1, cores = 1, iter = 700, warmup = 500)
-  m_univar <- update(m_univar_compiled, newdata = dat, chains = 1, cores = 1, iter = 700, warmup = 500)
+  m_cs <- update(m_cs_compiled, newdata = dat, chains = 2, cores = 2, iter = 2000, warmup = 1000, thin = 2)
+  m_biv_dh <- update(m_biv_dh_compiled, newdata = dat, chains = 2, cores = 2, iter = 2000, warmup = 1000, thin = 2)
+  m_biv <- update(m_biv_compiled, newdata = dat, chains = 2, cores = 2, iter = 2000, warmup = 1000, thin = 2)
+  m_univar <- update(m_univar_compiled, newdata = dat, chains = 2, cores = 2, iter = 2000, warmup = 1000, thin = 2)
  
    # Save models to RDS files
   saveRDS(m_cs, file = paste0("model_cs_run_", i, ".rds"))
@@ -164,7 +171,7 @@ run_models_data_first <- function(dat, i) {
 
 ```{r}
 # Now use map to run models on each dataset and return file names
-results <- map2(datasets, 1:num_runs, function(dat, i) {
+results <- map2(datasets, model_range, function(dat, i) {
   run_models_data_first(dat, i)
   
   # Return the file names for this run
@@ -445,3 +452,6 @@ univariate_model_files <- generate_files_list(5)
 print(univariate_model_files)
 
 ```
+
+
+
