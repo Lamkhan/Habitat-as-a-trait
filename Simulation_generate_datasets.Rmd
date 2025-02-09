@@ -19,7 +19,7 @@ library(brms)
 # sd(e) = exp(bv0 + uv0)
 
 ```{r}
-model_range <- 1:10 #Set this at the beginning of each session
+model_range <- 1:10 #Set this at the beginning of each session, used to break up total runs over many sessions
 n_ind <- 100 #number of individuals
 n_obs <- 10 #number of obs per individual
 n_tot <- n_ind * n_obs
@@ -282,6 +282,23 @@ bivariate_dh_model_files <- map_chr(results, "bivariate_dh")
 bivariate_model_files <- map_chr(results, "bivariate")
 univar_model_files <- map_chr(results, "univariate")
 ```
+
+```{r}
+#This will pull file names from rds files, instead of results object
+# Generate file names based on the model_range
+causal_model_files <- paste0("model_cs_run_", model_range, ".rds")
+bivariate_dh_model_files <- paste0("model_biv_dh_run_", model_range, ".rds")
+bivariate_model_files <- paste0("model_biv_run_", model_range, ".rds")
+univar_model_files <- paste0("model_univar_run_", model_range, ".rds")
+
+# Verify the file names
+print(causal_model_files)
+print(bivariate_dh_model_files)
+print(bivariate_model_files)
+print(univar_model_files)
+
+```
+
 
 ```{r}
 summarize_models <- function(file_list) {
