@@ -7,6 +7,7 @@ library(tidyverse)
 library(dplyr)
 library(purrr)
 library(brms)
+library(tidyr)
 ```
 ###############################################################################
 # simulated model
@@ -19,7 +20,7 @@ library(brms)
 # sd(e) = exp(bv0 + uv0)
 
 ```{r}
-model_range <- 1:10 #Set this at the beginning of each session, used to break up total runs over many sessions
+model_range <- 1:300 #Set this at the beginning of each session, used to break up total runs over many sessions
 n_ind <- 100 #number of individuals
 n_obs <- 10 #number of obs per individual
 n_tot <- n_ind * n_obs
@@ -284,18 +285,12 @@ univar_model_files <- map_chr(results, "univariate")
 ```
 
 ```{r}
-#This will pull file names from rds files, instead of results object
-# Generate file names based on the model_range
+# Generate file names based on the model_range, make sure to change model_range at the top, to encompass all the rds files available
 causal_model_files <- paste0("model_cs_run_", model_range, ".rds")
 bivariate_dh_model_files <- paste0("model_biv_dh_run_", model_range, ".rds")
 bivariate_model_files <- paste0("model_biv_run_", model_range, ".rds")
 univar_model_files <- paste0("model_univar_run_", model_range, ".rds")
 
-# Verify the file names
-print(causal_model_files)
-print(bivariate_dh_model_files)
-print(bivariate_model_files)
-print(univar_model_files)
 
 ```
 
@@ -433,7 +428,7 @@ random_effects_summary_univar <- univariate_summaries$random_effects
 fixed_effects_by_run_univar <- univariate_summaries$fixed_effects_by_run
 random_effects_by_run_univar <- univariate_summaries$random_effects_by_run
 
-# View the results
+# View the resultsKeep
 print(fixed_effects_summary_univar)
 print(random_effects_summary_univar)
 print(fixed_effects_by_run_univar)
@@ -470,5 +465,68 @@ print(univariate_model_files)
 
 ```
 
+```{r}
+compute_metrics <- function(run_by_run, true_vals) {
+  # Convert the wide table to long format.
+
+  long_df <- run_by_run %>%
+    pivot_longer(-run, names_to = "parameter", values_to = "Estimate")
+  
+  # Compute the metrics by parameter.
+  metrics <- long_df %>%
+    group_by(parameter) %>%
+    summarise(
+      mean_est = mean(Estimate, na.rm = TRUE),
+      bias = mean_est - true_vals[unique(parameter)],
+      mse = mean((Estimate - true_vals[unique(parameter)])^2, na.rm = TRUE),
+      rmse = sqrt(mse),
+      precision = sd(Estimate, na.rm = TRUE)
+    )
+  
+  return(metrics)
+}
+
+true_vals <- c(
+  y_Intercept = 0,
+  y_h = 1,
+  sigma_y_Intercept = 0,
+  h_Intercept = 0,
+  sigma_h_Intercept = 0,
+  Intercept = 0,  #Added just for the univariate model
+  h = 1  #Added just for the univariate model
+)
 
 
+
+```
+
+```{r}
+causal_metrics <- compute_fixed_metrics(causal_summaries$fixed_effects_by_run, true_vals)
+print(causal_metrics)
+
+
+
+```
+```{r}
+bivariate_dh_metrics <- compute_fixed_metrics(bivariate_dh_summaries$fixed_effects_by_run, true_vals)
+print(bivariate_dh_metrics)
+
+
+
+```
+
+```{r}
+bivariate_metrics <- compute_fixed_metrics(bivariate_summaries$fixed_effects_by_run, true_vals)
+print(bivariate_metrics)
+
+
+
+```
+
+```{r}
+univariate_metrics <- compute_fixed_metrics(univariate_summaries$fixed_effects_by_run, true_vals)
+print(univariate_metrics)
+
+
+
+```
