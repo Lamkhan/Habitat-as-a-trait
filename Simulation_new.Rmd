@@ -427,3 +427,66 @@ ran_univariate_metrics <- compute_metrics(univariate_summaries$random_effects_by
 print(ran_univariate_metrics)
 
 ```
+
+```{r}
+library(ggplot2)
+
+# Define the true values
+true_values <- c(
+  "y_Intercept" = y_bm0,
+  "y_h" = y_bmh,
+  "sigma_y_Intercept" = y_bv0,
+  "h_Intercept" = h_bm0,
+  "sigma_h_Intercept" = h_bv0
+)
+
+# Function to prepare data for plotting (only fixed effects)
+prepare_plot_data <- function(fixed_summary, model_name) {
+  fixed_summary %>%
+    mutate(model = model_name)
+}
+
+# Rename parameters in the univariate model to match other models
+univariate_fixed <- univariate_summaries$fixed_effects %>%
+  mutate(parameter = recode(parameter,
+                            "Intercept" = "y_Intercept",
+                            "h" = "y_h"))
+
+# Combine data from all models (only fixed effects)
+plot_data <- bind_rows(
+  prepare_plot_data(causal_summaries$fixed_effects, "Causal"),
+  prepare_plot_data(bivariate_dh_summaries$fixed_effects, "Bivariate DH"),
+  prepare_plot_data(bivariate_summaries$fixed_effects, "Bivariate"),
+  prepare_plot_data(univariate_fixed, "Univariate") # Using renamed univariate model
+)
+
+# Rename columns for compatibility
+plot_data <- plot_data %>%
+  rename(lower = `l-95% CI`, upper = `u-95% CI`)
+
+# Remove correlation (`cor`) and standard deviation (`sd`) parameters
+plot_data <- plot_data %>%
+  filter(!grepl("^cor|^sd", parameter))
+
+# Create and display separate plots for each fixed-effect parameter with true values
+plot_list <- plot_data %>%
+  split(.$parameter) %>%
+  map(~ ggplot(.x, aes(x = model, y = Estimate)) +
+        geom_point(size = 3) +
+        geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) +
+        geom_hline(yintercept = true_values[unique(.x$parameter)], linetype = "dashed", color = "red") + 
+        labs(title = unique(.x$parameter), x = "Model", y = "Estimated Value") +
+        theme_minimal() +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+      )
+
+# Display plots
+for (p in plot_list) {
+  print(p)
+}
+
+
+
+```
+
+
