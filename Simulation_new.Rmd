@@ -20,9 +20,9 @@ library(tidyr)
 # sd(e) = exp(bv0 + uv0)
 
 ```{r}
-model_range <- 1:2 #Set this at the beginning of each session, used to break up total runs over many sessions
+model_range <- 1:300 #Set this at the beginning of each session, used to break up total runs over many sessions
 n_ind <- 100 #number of individuals
-n_obs <- 10 #number of obs per individual
+n_obs <- 5 #number of obs per individual
 n_tot <- n_ind * n_obs
 
 # Baseline (avg) within individual effects for individuals in trait y
@@ -260,11 +260,13 @@ summarize_models <- function(file_list, path="") {
 ```
 
 ```{r}
-causal_summaries <- summarize_models(causal_model_files, path='C:\\Users\\lamkh\\Documents\\Habitat as a trait Proj\\model_cs_runs\\')
+causal_summaries <- summarize_models(causal_model_files, path='C:\\Users\\lamkh\\Documents\\Habitat as a trait Proj\\Outputs_100_5\\model_cs_runs\\')
 
 # Access the averaged summaries
 fixed_effects_summary <- causal_summaries$fixed_effects
 random_effects_summary <- causal_summaries$random_effects
+saveRDS(fixed_effects_summary, file = paste0("Cs_fixed_effects_summary", n_ind, "ind", n_obs, "obs", ".rds"))
+saveRDS(random_effects_summary, file = paste0("Cs_random_effects_summary", n_ind, "ind", n_obs, "obs", ".rds"))
 
 # Access the run-by-run tables
 fixed_effects_by_run <- causal_summaries$fixed_effects_by_run
@@ -279,12 +281,14 @@ print(random_effects_by_run)
 
 
 ```{r}
-# Summarize the bivariate models
-bivariate_dh_summaries <- summarize_models(bivariate_dh_model_files, path ="C:\\Users\\lamkh\\Documents\\Habitat as a trait Proj\\model_biv_dh_runs\\")
+# Summarize the bivariate double hierarchical models
+bivariate_dh_summaries <- summarize_models(bivariate_dh_model_files, path ="C:\\Users\\lamkh\\Documents\\Habitat as a trait Proj\\Outputs_100_5\\model_biv_dh_runs\\")
 
 # Access the averaged summaries
 fixed_effects_summary_biv_dh <- bivariate_dh_summaries$fixed_effects
 random_effects_summary_biv_dh <- bivariate_dh_summaries$random_effects
+saveRDS(fixed_effects_summary, file = paste0("biv_dh_fixed_effects_summary", n_ind, "ind", n_obs, "obs", ".rds"))
+saveRDS(random_effects_summary, file = paste0("biv_dh_random_effects_summary", n_ind, "ind", n_obs, "obs", ".rds"))
 
 # Access the run-by-run tables
 fixed_effects_by_run_biv_dh <- bivariate_dh_summaries$fixed_effects_by_run
@@ -302,11 +306,13 @@ print(random_effects_by_run_biv_dh)
 
 ```{r}
 # Summarize the bivariate models
-bivariate_summaries <- summarize_models(bivariate_model_files, path='C:\\Users\\lamkh\\Documents\\Habitat as a trait Proj\\model_biv_runs\\')
+bivariate_summaries <- summarize_models(bivariate_model_files, path='C:\\Users\\lamkh\\Documents\\Habitat as a trait Proj\\Outputs_100_5\\model_biv_runs\\')
 
 # Access the averaged summaries
 fixed_effects_summary_biv <- bivariate_summaries$fixed_effects
 random_effects_summary_biv <- bivariate_summaries$random_effects
+saveRDS(fixed_effects_summary, file = paste0("biv_fixed_effects_summary", n_ind, "ind", n_obs, "obs", ".rds"))
+saveRDS(random_effects_summary, file = paste0("biv_random_effects_summary", n_ind, "ind", n_obs, "obs", ".rds"))
 
 # Access the run-by-run tables
 fixed_effects_by_run_biv <- bivariate_summaries$fixed_effects_by_run
@@ -322,11 +328,13 @@ print(random_effects_by_run_biv)
 
 ```{r}
 # Summarize the univariate model
-univariate_summaries <- summarize_models(univar_model_files, path='C:\\Users\\lamkh\\Documents\\Habitat as a trait Proj\\model_univar_runs\\')
+univariate_summaries <- summarize_models(univar_model_files, path='C:\\Users\\lamkh\\Documents\\Habitat as a trait Proj\\Outputs_100_5\\model_univar_runs\\')
 
 # Access the averaged summaries
 fixed_effects_summary_univar <- univariate_summaries$fixed_effects
 random_effects_summary_univar <- univariate_summaries$random_effects
+saveRDS(fixed_effects_summary, file = paste0("univar_fixed_effects_summary", n_ind, "ind", n_obs, "obs", ".rds"))
+saveRDS(random_effects_summary, file = paste0("univar_random_effects_summary", n_ind, "ind", n_obs, "obs", ".rds"))
 
 # Access the run-by-run tables
 fixed_effects_by_run_univar <- univariate_summaries$fixed_effects_by_run
@@ -339,6 +347,43 @@ print(fixed_effects_by_run_univar)
 print(random_effects_by_run_univar)
 ```
 
+```{r}
+#Read the summaries back into R, as long as you've got the saved files
+
+# Define sample size parameters
+n_ind <- 100  # Change this to match the saved file
+n_obs <- 5  # Change this to match the saved file
+path <- "C:\\Users\\lamkh\\Documents\\Habitat as a trait Proj\\Outputs_100_5\\Summaries\\"  # Set the directory where summary files are stored
+
+# Function to read an RDS file with a specified path
+read_summary <- function(model, n_ind, n_obs, type, path) {
+  file_name <- paste0(model, "_", type, "_summary", n_ind, "ind", n_obs, "obs.rds")
+  full_path <- file.path(path, file_name)
+  
+  if (file.exists(full_path)) {
+    readRDS(full_path)
+  } else {
+    warning(paste("File not found:", full_path))
+    NULL
+  }
+}
+
+# Read the summaries
+fixed_effects_summary_cs <- read_summary("cs", n_ind, n_obs, "fixed_effects", path)
+random_effects_summary_cs <- read_summary("cs", n_ind, n_obs, "random_effects", path)
+
+fixed_effects_summary_biv_dh <- read_summary("biv_dh", n_ind, n_obs, "fixed_effects", path)
+random_effects_summary_biv_dh <- read_summary("biv_dh", n_ind, n_obs, "random_effects", path)
+
+fixed_effects_summary_biv <- read_summary("biv", n_ind, n_obs, "fixed_effects", path)
+random_effects_summary_biv <- read_summary("biv", n_ind, n_obs, "random_effects", path)
+
+fixed_effects_summary_univar <- read_summary("univar", n_ind, n_obs, "fixed_effects", path)
+random_effects_summary_univar <- read_summary("univar", n_ind, n_obs, "random_effects", path)
+
+
+
+```
 
 ```{r}
 compute_metrics <- function(run_by_run, true_vals) {
@@ -489,8 +534,163 @@ for (p in plot_list) {
   print(p)
 }
 
+# Define a file name for saving plots based on sample size
+plot_file_name <- paste0("Model_Output_fixed_effects_", n_ind, "ind", n_obs, 'obs', ".rds")
+
+# Save the list of plots
+saveRDS(plot_list, file = plot_file_name)
 
 
 ```
+
+```{r}
+# Define the true values for standard deviations
+true_sd_values <- c(
+  "sd(y_Intercept)" = sqrt(y_vm),  # Variance in mean value of y
+  "sd(y_h)" = sqrt(y_vs),          # Variance in plasticity (slope)
+  "sd(sigma_y_Intercept)" = sqrt(y_vv),  # Variance in residual variation of y
+  "sd(h_Intercept)" = sqrt(h_vm),  # Variance in mean value for habitat use
+  "sd(sigma_h_Intercept)" = sqrt(h_vv)  # Variance in residual variation of h
+)
+
+# Function to prepare SD data for plotting
+prepare_sd_plot_data <- function(random_summary, model_name) {
+  random_summary %>%
+    filter(grepl("^sd", parameter)) %>%  # Keep only standard deviation parameters
+    mutate(model = model_name)
+}
+
+# Rename SD parameters in the univariate model
+univariate_sd <- univariate_summaries$random_effects %>%
+  filter(grepl("^sd", parameter)) %>%  # Keep only standard deviation parameters
+  mutate(parameter = recode(parameter,
+                            "sd(Intercept)" = "sd(y_Intercept)",
+                            "sd(h)" = "sd(y_h)"))
+
+# Combine SD data from all models
+sd_plot_data <- bind_rows(
+  prepare_sd_plot_data(causal_summaries$random_effects, "Causal"),
+  prepare_sd_plot_data(bivariate_dh_summaries$random_effects, "Bivariate DH"),
+  prepare_sd_plot_data(bivariate_summaries$random_effects, "Bivariate"),
+  prepare_sd_plot_data(univariate_sd, "Univariate")  # Using renamed univariate SD parameters
+)
+
+# Rename columns for compatibility
+sd_plot_data <- sd_plot_data %>%
+  rename(lower = `l-95% CI`, upper = `u-95% CI`)
+
+# Create separate plots for each SD parameter with true values
+sd_plot_list <- sd_plot_data %>%
+  split(.$parameter) %>%
+  map(~ ggplot(.x, aes(x = model, y = Estimate)) +
+        geom_point(size = 3) +
+        geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) +
+        geom_hline(yintercept = true_sd_values[unique(.x$parameter)], linetype = "dashed", color = "red") + 
+        labs(title = unique(.x$parameter), x = "Model", y = "Estimated SD") +
+        theme_minimal() +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+      )
+
+# Display plots
+for (p in sd_plot_list) {
+  print(p)
+}
+
+# Define a file name for saving SD plots based on sample size
+sd_plot_file_name <- paste0("Model_Output_SD_", n_ind, "ind", n_obs, "obs", ".rds")
+
+# Save the list of SD plots
+saveRDS(sd_plot_list, file = sd_plot_file_name)
+
+
+```
+```{r}
+library(patchwork)
+library(purrr)
+
+# Define file paths
+file_paths <- list(
+  "50ind10obs" = "C:/Users/lamkh/Documents/Habitat as a trait Proj/Output_figures_all/Model_Output_fixed_effects_50ind10obs.rds",
+  "100ind10obs" = "C:/Users/lamkh/Documents/Habitat as a trait Proj/Output_figures_all/Model_Output_fixed_effects_100ind10obs.rds",
+  "100ind5obs" = "C:/Users/lamkh/Documents/Habitat as a trait Proj/Output_figures_all/Model_Output_fixed_effects_100ind5obs.rds"
+)
+
+# Load all plot lists
+plot_lists <- map(file_paths, readRDS)
+
+# Extract plot names (parameters)
+parameter_names <- names(plot_lists[[1]]) # Assuming all have the same parameters
+
+# Loop through each parameter to create and display plots
+for (param in parameter_names) {
+  
+  # Extract the same parameter from different sample sizes
+  plots_to_show <- map(plot_lists, ~ .x[[param]])
+
+  # Add titles with only sample size (remove parameter name duplication)
+  plots_to_show <- map2(plots_to_show, names(plot_lists), 
+                        ~ .x + ggtitle(.y) + # Use only sample size as title
+                          theme(plot.title = element_text(size = 10),
+                                axis.title.y = element_blank(),
+                                plot.margin = margin(5, 10, 5, 10))) # Add spacing
+
+  # Restore y-axis label only for the first plot in each row
+  plots_to_show[[1]] <- plots_to_show[[1]] + 
+    ylab("Estimated Value") + 
+    theme(plot.margin = margin(5, 10, 5, 20)) # Extra space on the left
+
+  # Combine all plots in a single row using `patchwork`
+  final_plot <- wrap_plots(plots_to_show, ncol = length(plots_to_show)) + 
+    plot_annotation(title = param) & theme(plot.margin = margin(5, 5, 5, 5)) 
+
+  # Display the final plot
+  print(final_plot)
+}
+
+```
+
+```{r}
+
+# Define file paths for SD plots
+sd_file_paths <- list(
+  "50ind10obs" = "C:/Users/lamkh/Documents/Habitat as a trait Proj/Output_figures_all/Model_Output_SD_50ind10obs.rds",
+  "100ind10obs" = "C:/Users/lamkh/Documents/Habitat as a trait Proj/Output_figures_all/Model_Output_SD_100ind10obs.rds",
+  "100ind5obs" = "C:/Users/lamkh/Documents/Habitat as a trait Proj/Output_figures_all/Model_Output_SD_100ind5obs.rds"
+)
+
+# Load all SD plot lists
+sd_plot_lists <- map(sd_file_paths, readRDS)
+
+# Extract SD parameter names (assuming all files have the same structure)
+sd_parameter_names <- names(sd_plot_lists[[1]])
+
+# Loop through each SD parameter to create and display plots
+for (param in sd_parameter_names) {
+  
+  # Extract the same SD parameter across different sample sizes
+  sd_plots_to_show <- map(sd_plot_lists, ~ .x[[param]])
+
+  # Add titles with only sample size (remove parameter name duplication)
+  sd_plots_to_show <- map2(sd_plots_to_show, names(sd_plot_lists), 
+                        ~ .x + ggtitle(.y) + # Only sample size in title
+                          theme(plot.title = element_text(size = 10),
+                                axis.title.y = element_blank(),
+                                plot.margin = margin(5, 10, 5, 10))) # Add spacing
+
+  # Restore y-axis label only for the first plot
+  sd_plots_to_show[[1]] <- sd_plots_to_show[[1]] + 
+    ylab("Estimated SD") + 
+    theme(plot.margin = margin(5, 10, 5, 20)) # Extra left space
+
+  # Combine all SD plots in a single row using `patchwork`
+  final_sd_plot <- wrap_plots(sd_plots_to_show, ncol = length(sd_plots_to_show)) + 
+    plot_annotation(title = param) & theme(plot.margin = margin(5, 5, 5, 5)) 
+
+  # Display the final SD plot
+  print(final_sd_plot)
+}
+
+```
+
 
 
