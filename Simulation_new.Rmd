@@ -260,7 +260,7 @@ summarize_models <- function(file_list, path="") {
 ```
 
 ```{r}
-causal_summaries <- summarize_models(causal_model_files, path='C:\\Users\\lamkh\\Documents\\Habitat as a trait Proj\\Outputs_100_5\\model_cs_runs\\')
+causal_summaries <- summarize_models(causal_model_files, path='C:\\Users\\Lam\\Desktop\\Lam Honors project runs\\Outputs_100_5\\model_cs_runs\\')
 
 # Access the averaged summaries
 fixed_effects_summary <- causal_summaries$fixed_effects
@@ -282,7 +282,7 @@ print(random_effects_by_run)
 
 ```{r}
 # Summarize the bivariate double hierarchical models
-bivariate_dh_summaries <- summarize_models(bivariate_dh_model_files, path ="C:\\Users\\lamkh\\Documents\\Habitat as a trait Proj\\Outputs_100_5\\model_biv_dh_runs\\")
+bivariate_dh_summaries <- summarize_models(bivariate_dh_model_files, path ="C:\\Users\\Lam\\Desktop\\Lam Honors project runs\\Outputs_100_5\\model_biv_dh_runs\\")
 
 # Access the averaged summaries
 fixed_effects_summary_biv_dh <- bivariate_dh_summaries$fixed_effects
@@ -306,7 +306,7 @@ print(random_effects_by_run_biv_dh)
 
 ```{r}
 # Summarize the bivariate models
-bivariate_summaries <- summarize_models(bivariate_model_files, path='C:\\Users\\lamkh\\Documents\\Habitat as a trait Proj\\Outputs_100_5\\model_biv_runs\\')
+bivariate_summaries <- summarize_models(bivariate_model_files, path='C:\\Users\\Lam\\Desktop\\Lam Honors project runs\\Outputs_100_5\\model_biv_runs\\')
 
 # Access the averaged summaries
 fixed_effects_summary_biv <- bivariate_summaries$fixed_effects
@@ -328,7 +328,7 @@ print(random_effects_by_run_biv)
 
 ```{r}
 # Summarize the univariate model
-univariate_summaries <- summarize_models(univar_model_files, path='C:\\Users\\lamkh\\Documents\\Habitat as a trait Proj\\Outputs_100_5\\model_univar_runs\\')
+univariate_summaries <- summarize_models(univar_model_files, path='C:\\Users\\Lam\\Desktop\\Lam Honors project runs\\Outputs_100_5\\model_univar_runs\\')
 
 # Access the averaged summaries
 fixed_effects_summary_univar <- univariate_summaries$fixed_effects
@@ -353,7 +353,7 @@ print(random_effects_by_run_univar)
 # Define sample size parameters
 n_ind <- 100  # Change this to match the saved file
 n_obs <- 5  # Change this to match the saved file
-path <- "C:\\Users\\lamkh\\Documents\\Habitat as a trait Proj\\Outputs_100_5\\Summaries\\"  # Set the directory where summary files are stored
+path <- "C:\\Users\\Lam\\Desktop\\Lam Honors project runs\\Outputs_100_5\\Summaries\\"  # Set the directory where summary files are stored
 
 # Function to read an RDS file with a specified path
 read_summary <- function(model, n_ind, n_obs, type, path) {
@@ -604,93 +604,161 @@ saveRDS(sd_plot_list, file = sd_plot_file_name)
 
 
 ```
+
 ```{r}
+library(tidyverse)
 library(patchwork)
 
-# Loop through each parameter to create and display plots
-for (param in parameter_names) {
-  
-  # Define a more descriptive plot title
-  plot_title <- case_when(
+# Define file paths
+file_paths <- list(
+  "50ind_10obs"  = "C:/Users/lamkh/Documents/Habitat as a trait Proj/Output_figures_all/Model_Output_fixed_effects_50ind10obs.rds",
+  "100ind_5obs"  = "C:/Users/lamkh/Documents/Habitat as a trait Proj/Output_figures_all/Model_Output_fixed_effects_100ind5obs.rds",
+  "100ind_10obs" = "C:/Users/lamkh/Documents/Habitat as a trait Proj/Output_figures_all/Model_Output_fixed_effects_100ind10obs.rds"
+)
+
+# Load all plot lists
+plot_lists <- map(file_paths, readRDS)
+
+
+rename_parameters <- function(param) {
+  case_when(
     param == "sigma_y_Intercept" ~ "sigma_y",
     param == "sigma_h_Intercept" ~ "sigma_h",
     TRUE ~ param
   )
-  
-  # Extract the same parameter from different sample sizes
-  plots_to_show <- map(plot_lists, ~ .x[[param]])
-  
-  # Add sample size titles and adjust theme
-  plots_to_show <- imap(plots_to_show, ~ .x +
-                          ggtitle(.y) +
-                          theme(plot.title = element_text(size = 10),
-                                axis.title.y = element_blank(),
-                                plot.margin = margin(5, 10, 5, 10)))
-  
-  # Restore y-axis label only for the first plot in each row
-  plots_to_show[[1]] <- plots_to_show[[1]] + theme(axis.title.y = element_text())
-
-  # Combine all plots horizontally
-  final_plot <- wrap_plots(plots_to_show, ncol = length(plots_to_show)) + 
-    plot_annotation(title = plot_title) & theme(plot.margin = margin(5, 5, 5, 5))
-
-  # Display the final plot
-  print(final_plot)
 }
 
 
+model_order <- c("Univariate", "Bivariate", "Bivariate DH", "Causal")
 
+
+parameter_names <- names(plot_lists[[1]])
+
+# Loop through each parameter
+for (param in parameter_names) {
+
+
+  plot_title <- rename_parameters(param)
+
+  # Extract and modify plots for each sample size
+  plots_to_show <- map(plot_lists, function(plot_list) {
+    plot <- plot_list[[param]]
+
+
+    plot$data$model <- factor(plot$data$model, levels = model_order)
+
+
+    plot +
+      ggtitle(NULL) +
+      geom_point(aes(color = model == "Causal"), size = 3) +
+      geom_errorbar(aes(ymin = lower, ymax = upper, color = model == "Causal"), width = 0.2) +
+      scale_color_manual(values = c("black", "blue")) +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(size = 10),
+        axis.title.y = element_text(angle = 90, vjust = 1, hjust = 0.5),  # Rotate label vertically
+        axis.text.y = element_text(size = 10),
+        axis.text.x = element_text(size = 9, angle = 45, hjust = 1),
+        plot.margin = margin(5, 10, 5, 10),
+        legend.position = "none"
+      )
+  })
+
+  # Add sample size titles
+  plots_to_show <- imap(plots_to_show, ~ .x + ggtitle(.y))
+
+
+  plots_to_show[[1]] <- plots_to_show[[1]] +
+    ylab("Estimated Value") +
+    theme(axis.title.y = element_text(angle = 90, vjust = 1, hjust = 0.5))  # Ensures vertical y-axis label
+
+  # Combine plots horizontally
+  final_plot <- wrap_plots(plots_to_show, nrow = 1) +
+    plot_annotation(title = plot_title)
+
+  # Display the final combined plot
+  print(final_plot)
+}
+
+saveRDS(final_plot, file = "final_plot_fixed_effects.rds")
 ```
 
 ```{r}
+library(tidyverse)
 library(patchwork)
-library(purrr)
 
 # Define file paths for SD plots
 sd_file_paths <- list(
-  "50ind10obs" = "C:/Users/lamkh/Documents/Habitat as a trait Proj/Output_figures_all/Model_Output_SD_50ind10obs.rds",
-  "100ind10obs" = "C:/Users/lamkh/Documents/Habitat as a trait Proj/Output_figures_all/Model_Output_SD_100ind10obs.rds",
-  "100ind5obs" = "C:/Users/lamkh/Documents/Habitat as a trait Proj/Output_figures_all/Model_Output_SD_100ind5obs.rds"
+  "50ind_10obs"  = "C:\\Users\\lamkh\\Documents\\Habitat as a trait Proj\\Output_figures_all\\Model_Output_SD_50ind10obs.rds",
+  "100ind_5obs"  = "C:\\Users\\lamkh\\Documents\\Habitat as a trait Proj\\Output_figures_all\\Model_Output_SD_100ind5obs.rds",
+  "100ind_10obs" = "C:\\Users\\lamkh\\Documents\\Habitat as a trait Proj\\Output_figures_all\\Model_Output_SD_100ind10obs.rds"
 )
 
 # Load all SD plot lists
 sd_plot_lists <- map(sd_file_paths, readRDS)
 
-# Loop through each SD parameter to create and display combined plots
-for (param in names(sd_plot_lists[[1]])) {
 
-  # Define a more descriptive plot title, renaming parameters as needed
-  plot_title <- case_when(
+rename_sd_parameters <- function(param) {
+  case_when(
     param == "sd(sigma_h_Intercept)" ~ "sd(sigma_h)",
     param == "sd(sigma_y_Intercept)" ~ "sd(sigma_y)",
     TRUE ~ param
   )
+}
 
-  # Extract the same SD parameter across different sample sizes
-  plots_to_show <- map(sd_plot_lists, ~ .x[[param]])
 
-  # Add titles with only sample size (remove parameter name duplication)
-  plots_to_show <- map2(plots_to_show, names(sd_plot_lists), 
-                        ~ .x +
-                          ggtitle(.y) +
-                          theme(plot.title = element_text(size = 10),
-                                axis.title.y = element_blank(),
-                                plot.margin = margin(5, 10, 5, 10)))
+model_order <- c("Univariate", "Bivariate", "Bivariate DH", "Causal")
 
-  # Restore y-axis label only for the first plot
-  plots_to_show[[1]] <- plots_to_show[[1]] + 
-    ylab("Estimated SD") + 
-    theme(plot.margin = margin(5, 10, 5, 20)) # Extra left space
 
-  # Combine all SD plots in a single row using `patchwork`
-  final_plot <- wrap_plots(plots_to_show, ncol = length(plots_to_show)) + 
-    plot_annotation(title = plot_title) & theme(plot.margin = margin(5, 5, 5, 5)) 
+sd_parameter_names <- names(sd_plot_lists[[1]])
+
+# Loop through each SD parameter
+for (param in sd_parameter_names) {
+
+  plot_title <- rename_sd_parameters(param)
+
+  # Extract plots for the current SD parameter across sample sizes
+  plots_to_show <- map(sd_plot_lists, function(plot_list) {
+    plot <- plot_list[[param]]
+
+
+    plot$data$model <- factor(plot$data$model, levels = model_order)
+
+    plot +
+      ggtitle(NULL) +
+      geom_point(aes(color = model == "Causal"), size = 3) +
+      geom_errorbar(aes(ymin = lower, ymax = upper, color = model == "Causal"), width = 0.2) +
+      scale_color_manual(values = c("black", "blue")) +  # Blue for causal
+      theme_minimal() +
+      theme(
+        plot.title = element_text(size = 10),
+        axis.text.x = element_text(size = 9, angle = 45, hjust = 1),
+        axis.text.y = element_text(size = 10),
+        axis.title.y = element_blank(),
+        plot.margin = margin(5, 10, 5, 10),
+        legend.position = "none"
+      )
+  })
+
+  # Add sample size titles
+  plots_to_show <- imap(plots_to_show, ~ .x + ggtitle(.y))
+
+
+  plots_to_show[[1]] <- plots_to_show[[1]] +
+    ylab("Estimated SD") +
+    theme(axis.title.y = element_text(angle = 90, vjust = 1, hjust = 0.5))
+
+  # Combine plots horizontally
+  final_plot <- wrap_plots(plots_to_show, nrow = 1) +
+    plot_annotation(title = plot_title)
 
   # Display the final SD plot
   print(final_plot)
 }
 
-```
+# Save the final plot
+saveRDS(final_plot, file = "final_plot_ran_effects.rds")
 
+```
 
 
